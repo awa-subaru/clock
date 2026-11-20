@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clock · 时间</title>
+<style>
+  :root {
+    --bg-0: #070b16;
+    --bg-1: #0e1630;
+    --ink: #eef2ff;
+    --muted: #8e9ab8;
+    --accent: #e8c37a;
+    --accent-soft: rgba(232, 195, 122, 0.16);
+    --line: rgba(238, 242, 255, 0.10);
+    --font: "SF Mono", "Cascadia Code", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --font-cn: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: radial-gradient(1200px 800px at 20% 0%, #17224a 0%, transparent 55%),
+                radial-gradient(900px 700px at 85% 100%, #1d1a3d 0%, transparent 50%),
+                linear-gradient(160deg, var(--bg-1) 0%, var(--bg-0) 70%);
+    color: var(--ink);
+    font-family: var(--font-cn);
+    display: grid;
+    place-items: center;
+    min-height: 100svh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  /* 星点背景 */
+  .stars {
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 22%, rgba(255,255,255,.55) 50%, transparent 51%),
+      radial-gradient(1px 1px at 74% 14%, rgba(255,255,255,.4) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 62% 78%, rgba(255,255,255,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 28% 68%, rgba(255,255,255,.3) 50%, transparent 51%),
+      radial-gradient(1px 1px at 88% 52%, rgba(255,255,255,.45) 50%, transparent 51%),
+      radial-gradient(1px 1px at 44% 8%, rgba(255,255,255,.3) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 8% 88%, rgba(255,255,255,.3) 50%, transparent 51%);
+    animation: twinkle 7s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes twinkle {
+    from { opacity: .45; }
+    to   { opacity: .9; }
+  }
+
+  .shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(20px, 4vh, 36px);
+    padding: 32px;
+  }
+
+  /* 表盘 */
+  .dial-wrap {
+    position: relative;
+    width: min(64vw, 46vh, 380px);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  .dial-wrap::before {
+    content: "";
+    position: absolute;
+    inset: -14%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 62%);
+    filter: blur(14px);
+    z-index: -1;
+  }
+
+  .dial {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .face {
+    fill: rgba(12, 18, 38, 0.55);
+    stroke: rgba(238, 242, 255, 0.12);
+    stroke-width: 1;
+  }
+
+  .ring {
+    fill: none;
+    stroke: rgba(232, 195, 122, 0.35);
+    stroke-width: 1;
+  }
+
+  .tick { stroke: rgba(238, 242, 255, 0.28); stroke-width: 1.4; stroke-linecap: round; }
+  .tick.major { stroke: rgba(238, 242, 255, 0.7); stroke-width: 2.2; }
+
+  .num {
+    fill: var(--muted);
+    font-family: var(--font);
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    letter-spacing: 0.04em;
+  }
+  .num.accent { fill: var(--accent); }
+
+  .hand { stroke-linecap: round; }
+  .hand-hour   { stroke: var(--ink); stroke-width: 6; }
+  .hand-minute { stroke: var(--ink); stroke-width: 3.5; }
+  .hand-second { stroke: var(--accent); stroke-width: 1.4; }
+
+  .cap { fill: var(--accent); }
+  .cap-inner { fill: #0d1328; }
+
+  /* 数字时间 */
+  .readout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font);
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .eyebrow::before,
+  .eyebrow::after {
+    content: "";
+    width: 28px;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .digital {
+    font-family: var(--font);
+    font-size: clamp(44px, 7.6vw, 76px);
+    font-weight: 300;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.08em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 26px rgba(232, 195, 122, 0.18);
+  }
+  .digital .sep {
+    color: var(--accent);
+    animation: blink 2s steps(1) infinite;
+  }
+  @keyframes blink {
+    0%, 70% { opacity: 1; }
+    71%, 100% { opacity: 0.25; }
+  }
+  .digital .sec {
+    font-size: 0.42em;
+    color: var(--accent);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+  }
+  .digital .ampm {
+    font-size: 0.24em;
+    letter-spacing: 0.24em;
+    color: var(--muted);
+    margin-left: 0.4em;
+  }
+
+  .date-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 16px;
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .date-line .dot {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--accent);
+    opacity: .7;
+  }
+
+  .tz {
+    font-family: var(--font);
+    font-size: 11px;
+    color: rgba(142, 154, 184, 0.7);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  @media (max-height: 560px) {
+    .dial-wrap { display: none; }
+    .shell { gap: 18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stars, .digital .sep { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+
+  <main class="shell">
+    <div class="dial-wrap">
+      <svg class="dial" viewBox="0 0 200 200" role="img" aria-label="模拟时钟">
+        <defs>
+          <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.6" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle class="face" cx="100" cy="100" r="96"/>
+        <circle class="ring" cx="100" cy="100" r="88"/>
+        <g id="ticks"></g>
+        <g id="numerals"></g>
+        <line id="hourHand"   class="hand hand-hour"   x1="100" y1="108" x2="100" y2="58"/>
+        <line id="minuteHand" class="hand hand-minute" x1="100" y1="114" x2="100" y2="36"/>
+        <g id="secondHand" filter="url(#soft)">
+          <line class="hand hand-second" x1="100" y1="122" x2="100" y2="26"/>
+          <circle cx="100" cy="26" r="2.4" fill="var(--accent)"/>
+        </g>
+        <circle class="cap" cx="100" cy="100" r="5"/>
+        <circle class="cap-inner" cx="100" cy="100" r="2"/>
+      </svg>
+    </div>
+
+    <section class="readout" aria-live="off">
+      <div class="eyebrow">Local Time</div>
+      <div class="digital" id="digital" aria-label="当前时间">
+        <span id="h">--</span><span class="sep">:</span><span id="m">--</span><span class="sep">:</span><span class="sec" id="s">--</span>
+      </div>
+      <div class="date-line">
+        <span id="date">——</span>
+        <span class="dot"></span>
+        <span id="weekday">——</span>
+      </div>
+      <div class="tz" id="tz">——</div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ticksG = $("ticks");
+  const numsG = $("numerals");
+  const hourHand = $("hourHand");
+  const minuteHand = $("minuteHand");
+  const secondHand = $("secondHand");
+  const els = {
+    h: $("h"), m: $("m"), s: $("s"),
+    date: $("date"), weekday: $("weekday"), tz: $("tz"),
+  };
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const pad = (n) => String(n).padStart(2, "0");
+
+  // 绘制刻度
+  for (let i = 0; i < 60; i++) {
+    const major = i % 5 === 0;
+    const line = document.createElementNS(SVG_NS, "line");
+    const angle = (i * 6 * Math.PI) / 180;
+    const r1 = major ? 82 : 84;
+    const r2 = 88;
+    const cx = 100, cy = 100;
+    line.setAttribute("x1", cx + r1 * Math.sin(angle));
+    line.setAttribute("y1", cy - r1 * Math.cos(angle));
+    line.setAttribute("x2", cx + r2 * Math.sin(angle));
+    line.setAttribute("y2", cy - r2 * Math.cos(angle));
+    line.setAttribute("class", major ? "tick major" : "tick");
+    ticksG.appendChild(line);
+  }
+
+  // 绘制 3/6/9/12 数字
+  [[12, 0], [3, 1], [6, 2], [9, 3]].forEach(([n, i]) => {
+    const angle = (i * 90 * Math.PI) / 180;
+    const r = 70;
+    const t = document.createElementNS(SVG_NS, "text");
+    t.setAttribute("x", 100 + r * Math.sin(angle));
+    t.setAttribute("y", 100 - r * Math.cos(angle));
+    t.setAttribute("class", "num" + (n === 12 ? " accent" : ""));
+    t.textContent = n;
+    numsG.appendChild(t);
+  });
+
+  const weekdays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+  function timeZoneName() {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return tz ? tz.replace(/_/g, " ") : "LOCAL";
+    } catch { return "LOCAL"; }
+  }
+
+  let rafId = null;
+  let lastTitle = "";
+
+  function frame() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
+
+    // 数字时间
+    els.h.textContent = pad(h);
+    els.m.textContent = pad(m);
+    els.s.textContent = pad(s);
+
+    // 日期
+    els.date.textContent = `${now.getFullYear()} 年 ${pad(now.getMonth() + 1)} 月 ${pad(now.getDate())} 日`;
+    els.weekday.textContent = weekdays[now.getDay()];
+    els.tz.textContent = timeZoneName();
+
+    const title = `Clock · ${pad(h)}:${pad(m)}`;
+    if (title !== lastTitle) {
+      document.title = title;
+      lastTitle = title;
+    }
+
+    // 指针（秒针平滑扫动）
+    const secFloat = s + ms / 1000;
+    const secAngle = secFloat * 6;
+    const minAngle = m * 6 + secFloat * 0.1;
+    const hourAngle = (h % 12) * 30 + m * 0.5 + secFloat / 120;
+
+    hourHand.setAttribute("transform", `rotate(${hourAngle} 100 100)`);
+    minuteHand.setAttribute("transform", `rotate(${minAngle} 100 100)`);
+    secondHand.setAttribute("transform", `rotate(${secAngle} 100 100)`);
+
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (rafId === null) rafId = requestAnimationFrame(frame);
+  }
+  function stop() {
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  // 页面不可见时暂停以省电
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stop();
+    else start();
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>
